@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('study_plans')
 export class StudyPlan {
@@ -22,6 +23,13 @@ export class StudyPlan {
 
     @Column({ type: 'jsonb' })
     schedule: any;
+
+    @Column({ name: 'user_id' })
+    userId: string;
+
+    @ManyToOne(() => User)
+    @JoinColumn({ name: 'user_id' })
+    user: User;
 
     @CreateDateColumn({ type: 'timestamp' })
     createdAt: Date;

@@ -24,7 +24,7 @@ export class AiService {
     }
   }
 
-  async generatePlan(dto: GeneratePlanDto): Promise<StudyPlan> {
+  async generatePlan(dto: GeneratePlanDto, userId: string): Promise<StudyPlan> {
     try {
       const data = await this.langChainProvider.generatePlan(
         dto.prompt,
@@ -41,6 +41,7 @@ export class AiService {
           level: dto.level,
           selectedTopics: dto.selectedTopics,
           schedule: data.schedule,
+          userId,
         });
       } catch (dbError) {
         console.error('Error saving study plan to database:', dbError);

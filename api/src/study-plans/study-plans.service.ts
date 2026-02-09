@@ -10,6 +10,7 @@ export interface CreateStudyPlanDto {
     level: string;
     selectedTopics?: string[];
     schedule: any;
+    userId: string;
 }
 
 @Injectable()
@@ -24,8 +25,9 @@ export class StudyPlansService {
         return await this.studyPlansRepository.save(studyPlan);
     }
 
-    async findAll(): Promise<StudyPlan[]> {
+    async findAll(userId: string): Promise<StudyPlan[]> {
         return await this.studyPlansRepository.find({
+            where: { userId },
             order: { createdAt: 'DESC' },
         });
     }
