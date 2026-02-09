@@ -1,34 +1,32 @@
 "use client";
 
 import React from "react";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-interface BreadcrumbProps {
-    activePage: string;
-}
+export const Breadcrumb = () => {
+    const pathname = usePathname();
 
-export const Breadcrumb = ({ activePage }: BreadcrumbProps) => {
     const navigation = [
-        { name: "Dashboard", id: "dashboard" },
+        { name: "Dashboard", href: "/dashboard" },
         {
             name: "Create with AI",
-            id: "create-ai",
             items: [
-                { name: "Study Plans", id: "create-study-plan" },
-                { name: "Courses", id: "create-course" },
+                { name: "Study Plans", href: "/create-study-plan" },
+                { name: "Courses", href: "/create-course" },
             ]
         },
-        { name: "Study Plans", id: "study-plan" },
-        { name: "Courses", id: "courses" },
+        { name: "Study Plans", href: "/study-plans" },
+        { name: "Courses", href: "/courses" },
     ];
 
     const getBreadcrumbs = () => {
         for (const item of navigation) {
             if (item.items) {
-                const sub = item.items.find(s => s.id === activePage);
+                const sub = item.items.find(s => s.href === pathname);
                 if (sub) return [item.name, sub.name];
             }
-            if (item.id === activePage) return [item.name];
+            if ('href' in item && item.href === pathname) return [item.name];
         }
         return ["Dashboard"];
     };

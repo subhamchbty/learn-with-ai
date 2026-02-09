@@ -1,16 +1,13 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { Dashboard, StudyPlansList, CoursesList } from "@/components/Pages";
-import { CreateStudyPlan } from "@/components/CreateStudyPlan";
-import { CreateCourse } from "@/components/CreateCourse";
+import { StudyPlansList } from "@/components/Pages";
 import { useAuth } from "@/lib/auth-context";
 
-export default function HomeClient() {
-    const [activePage, setActivePage] = useState("dashboard");
+export default function StudyPlansClient() {
     const { user, loading } = useAuth();
     const router = useRouter();
 
@@ -37,21 +34,11 @@ export default function HomeClient() {
 
     return (
         <div className="flex h-screen w-full bg-white text-zinc-950 overflow-hidden">
-            {/* Sidebar */}
-            <Sidebar activePage={activePage} setActivePage={setActivePage} />
-
-            {/* Main Content */}
+            <Sidebar />
             <main className="flex flex-1 flex-col overflow-hidden">
-                {/* Header Breadcrumb */}
-                <Breadcrumb activePage={activePage} />
-
-                {/* Page Content */}
+                <Breadcrumb />
                 <div className="flex-1 overflow-auto p-6 bg-zinc-50/50">
-                    {activePage === "dashboard" && <Dashboard />}
-                    {activePage === "create-study-plan" && <CreateStudyPlan />}
-                    {activePage === "create-course" && <CreateCourse />}
-                    {activePage === "study-plan" && <StudyPlansList />}
-                    {activePage === "courses" && <CoursesList />}
+                    <StudyPlansList />
                 </div>
             </main>
         </div>

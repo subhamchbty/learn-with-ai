@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
     LayoutDashboard,
     BookOpen,
@@ -15,34 +17,29 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
-import { useRouter } from "next/navigation";
 
-interface SidebarProps {
-    activePage: string;
-    setActivePage: (page: string) => void;
-}
-
-export const Sidebar = ({ activePage, setActivePage }: SidebarProps) => {
+export const Sidebar = () => {
     const [language, setLanguage] = useState("English");
     const [openGroups, setOpenGroups] = useState<string[]>(["create-ai"]);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const { user, logout } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
 
     // Navigation structure
     const navigation = [
-        { name: "Dashboard", id: "dashboard", icon: LayoutDashboard },
+        { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         {
             name: "Create with AI",
             id: "create-ai",
             icon: Sparkles,
             items: [
-                { name: "Study Plans", id: "create-study-plan", icon: BookOpen },
-                { name: "Courses", id: "create-course", icon: GraduationCap },
+                { name: "Study Plans", href: "/create-study-plan", icon: BookOpen },
+                { name: "Courses", href: "/create-course", icon: GraduationCap },
             ]
         },
-        { name: "Study Plans", id: "study-plan", icon: BookOpen },
-        { name: "Courses", id: "courses", icon: GraduationCap },
+        { name: "Study Plans", href: "/study-plans", icon: BookOpen },
+        { name: "Courses", href: "/courses", icon: GraduationCap },
     ];
 
     const toggleGroup = (id: string) => {
@@ -122,35 +119,35 @@ export const Sidebar = ({ activePage, setActivePage }: SidebarProps) => {
                                 {openGroups.includes(item.id) && (
                                     <div className="grid gap-1 pl-4 relative">
                                         {item.items.map((sub) => (
-                                            <button
-                                                key={sub.id}
-                                                onClick={() => setActivePage(sub.id)}
+                                            <Link
+                                                key={sub.href}
+                                                href={sub.href}
                                                 className={cn(
                                                     "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                                                    activePage === sub.id
+                                                    pathname === sub.href
                                                         ? "bg-zinc-100 text-zinc-900"
                                                         : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
                                                 )}
                                             >
-                                                <sub.icon className={cn("size-4", activePage === sub.id ? "text-zinc-900" : "text-zinc-500")} />
+                                                <sub.icon className={cn("size-4", pathname === sub.href ? "text-zinc-900" : "text-zinc-500")} />
                                                 {sub.name}
-                                            </button>
+                                            </Link>
                                         ))}
                                     </div>
                                 )}
                             </div>
                         ) : (
-                            <button
-                                key={item.id}
-                                onClick={() => setActivePage(item.id)}
+                            <Link
+                                key={item.href}
+                                href={item.href}
                                 className={cn(
                                     "group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-zinc-100 hover:text-zinc-900 transition-all",
-                                    activePage === item.id ? "bg-zinc-100 text-zinc-900" : "text-zinc-500"
+                                    pathname === item.href ? "bg-zinc-100 text-zinc-900" : "text-zinc-500"
                                 )}
                             >
-                                <item.icon className={cn("size-4 text-zinc-500 group-hover:text-zinc-900", activePage === item.id && "text-zinc-900")} />
+                                <item.icon className={cn("size-4 text-zinc-500 group-hover:text-zinc-900", pathname === item.href && "text-zinc-900")} />
                                 {item.name}
-                            </button>
+                            </Link>
                         )
                     ))}
                 </nav>
