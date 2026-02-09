@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import { StudyPlan } from './src/study-plans/entities/study-plan.entity';
 import { User } from './src/users/entities/user.entity';
+import { AiRequest } from './src/ai/entities/ai-request.entity';
 
 // Load environment variables
 config();
@@ -13,7 +14,7 @@ export default new DataSource({
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_NAME || 'learn_with_ai',
-    entities: [StudyPlan, User],
+    entities: [StudyPlan, User, AiRequest],
     migrations: ['src/migrations/*.ts'],
     migrationsTableName: 'migrations',
     synchronize: false,

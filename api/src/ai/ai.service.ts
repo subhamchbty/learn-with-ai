@@ -4,6 +4,8 @@ import { TopicsResponse, StudyPlan } from './interfaces/ai.interfaces';
 import { StudyPlansService } from '../study-plans/study-plans.service';
 import { UsersService } from '../users/users.service';
 import { LangChainProvider } from './providers/langchain.provider';
+import { AiRequestTrackingService } from './ai-request-tracking.service';
+import { RequestType } from './entities/ai-request.entity';
 
 @Injectable()
 export class AiService {
@@ -11,6 +13,7 @@ export class AiService {
     private langChainProvider: LangChainProvider,
     private studyPlansService: StudyPlansService,
     private usersService: UsersService,
+    private aiRequestTrackingService: AiRequestTrackingService,
   ) { }
 
   async generateTopics(dto: GenerateTopicsDto, userId?: string): Promise<TopicsResponse> {
@@ -24,6 +27,18 @@ export class AiService {
       if (userId && result.tokensUsed) {
         await this.usersService.incrementTokenUsage(userId, result.tokensUsed);
       }
+
+      // Log request asynchronously (fire and forget - happens after response)
+      this.aiRequestTrackingService.logRequest({
+        requestType: RequestType.GENERATE_TOPICS,
+        prompt: dto.prompt,
+        level: dto.level,
+        tokensUsed: result.tokensUsed || 0,
+        userId,
+        metadata: {
+          topicsCount: result.topics?.length || 0,
+        },
+      });
 
       return result;
     } catch (error) {
@@ -60,6 +75,19 @@ export class AiService {
         console.error('Error saving study plan to database:', dbError);
         // Continue and return the plan even if database save fails
       }
+
+      // Log request asynchronously (fire and forget - happens after response)
+      this.aiRequestTrackingService.logRequest({
+        requestType: RequestType.GENERATE_PLAN,
+        prompt: dto.prompt,
+        level: dto.level,
+        tokensUsed: data.tokensUsed || 0,
+        userId,
+        metadata: {
+          selectedTopicsCount: dto.selectedTopics?.length || 0,
+          scheduleItemsCount: data.schedule?.length || 0,
+        },
+      });
 
       return data;
     } catch (error) {
