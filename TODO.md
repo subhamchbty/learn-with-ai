@@ -1,3 +1,5 @@
+[ ] remove create with ai nav from sidebar
+[ ] remove courses nav
 [ ] limitation on plan generation to generic and dangerous subjects like medicine suggestion or weapon making
 [ ] regenerate plan feature
 [ ] prompt enhancement
