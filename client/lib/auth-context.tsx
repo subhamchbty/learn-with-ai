@@ -19,6 +19,7 @@ interface AuthContextType {
     signup: (email: string, name: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
+    updateTokens: (tokensUsed: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,6 +65,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
     };
 
+    const updateTokens = (tokensUsed: number) => {
+        if (user) {
+            setUser({
+                ...user,
+                totalTokensUsed: (user.totalTokensUsed || 0) + tokensUsed,
+                dailyTokensUsed: (user.dailyTokensUsed || 0) + tokensUsed,
+            });
+        } else {
+            // If no user, still refresh to get latest data
+            checkAuth();
+        }
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -73,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 signup,
                 logout,
                 checkAuth,
+                updateTokens,
             }}
         >
             {children}

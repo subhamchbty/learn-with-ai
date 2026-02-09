@@ -42,17 +42,21 @@ export class LangChainProvider {
 Ensure each topic is specific, actionable, and relevant to the subject matter.`,
         );
 
-        const chain = promptTemplate.pipe(this.model).pipe(parser);
-
-        const result = await chain.invoke({
+        // Format the prompt
+        const formattedPrompt = await promptTemplate.format({
             subject: prompt,
             level,
             format_instructions: parser.getFormatInstructions(),
         });
 
-        // Extract token usage from the last model response
-        // Gemini API returns usage metadata in the response
-        const tokensUsed = this.estimateTokens(prompt, level, JSON.stringify(result));
+        // Invoke the model to get raw response with metadata
+        const response = await this.model.invoke(formattedPrompt);
+
+        // Extract token usage from response metadata
+        const tokensUsed = this.extractTokenUsage(response);
+
+        // Parse the response content
+        const result = await parser.parse(response.content as string);
 
         return { ...result, tokensUsed };
     }
@@ -123,28 +127,51 @@ Do not generate full lesson content, just the structure.
 {format_instructions}`,
         );
 
-        const chain = promptTemplate.pipe(this.model).pipe(parser);
-
-        const result = await chain.invoke({
+        // Format the prompt
+        const formattedPrompt = await promptTemplate.format({
             subject: prompt,
             level,
             topicsInstruction,
             format_instructions: parser.getFormatInstructions(),
         });
-        // Extract token usage
-        const tokensUsed = this.estimateTokens(prompt, level, JSON.stringify(result));
+
+        // Invoke the model to get raw response with metadata
+        const response = await this.model.invoke(formattedPrompt);
+
+        // Extract token usage from response metadata
+        const tokensUsed = this.extractTokenUsage(response);
+
+        // Parse the response content
+        const result = await parser.parse(response.content as string);
 
         return { ...result, tokensUsed };
     }
 
     /**
-     * Estimate tokens used (rough approximation: 1 token ≈ 4 characters)
-     * For more accuracy, integrate with the actual Groq API token counting
+     * Extract actual token usage from Groq API response metadata
      */
-    private estimateTokens(input: string, level: string, output: string): number {
-        const inputTokens = Math.ceil((input.length + level.length) / 4);
-        const outputTokens = Math.ceil(output.length / 4);
-        return inputTokens + outputTokens;
+    private extractTokenUsage(response: any): number {
+        try {
+            // Groq returns token usage in response_metadata.usage
+            const usage = response.response_metadata?.usage;
+            if (usage && typeof usage.total_tokens === 'number') {
+                return usage.total_tokens;
+            }
+
+            // Fallback: calculate from prompt_tokens and completion_tokens
+            if (usage) {
+                const promptTokens = usage.prompt_tokens || 0;
+                const completionTokens = usage.completion_tokens || 0;
+                return promptTokens + completionTokens;
+            }
+
+            // If no metadata available, return 0
+            console.warn('Token usage metadata not found in response');
+            return 0;
+        } catch (error) {
+            console.error('Error extracting token usage:', error);
+            return 0;
+        }
     }
 
     /**

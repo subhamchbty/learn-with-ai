@@ -5,6 +5,7 @@ import { ArrowLeft, Check, ChevronRight, Loader2, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AICreationForm } from "./AICreationForm";
 import { aiApi } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
 // --- Study Plan Types ---
 interface Lesson {
@@ -30,6 +31,7 @@ interface StudyPlan {
 }
 
 export const CreateStudyPlan = () => {
+    const { updateTokens } = useAuth();
     const [step, setStep] = useState<'input' | 'selection' | 'result'>('input');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -49,6 +51,11 @@ export const CreateStudyPlan = () => {
             if (data.topics && Array.isArray(data.topics)) {
                 setGeneratedTopics(data.topics);
                 setStep('selection');
+
+                // Update token usage in sidebar
+                if (data.tokensUsed) {
+                    updateTokens(data.tokensUsed);
+                }
             }
         } catch (error) {
             console.error("Error generating topics:", error);
@@ -71,6 +78,11 @@ export const CreateStudyPlan = () => {
 
             setStudyPlan(data);
             setStep('result');
+
+            // Update token usage in sidebar
+            if (data.tokensUsed) {
+                updateTokens(data.tokensUsed);
+            }
         } catch (error) {
             console.error("Error generating plan:", error);
         } finally {
