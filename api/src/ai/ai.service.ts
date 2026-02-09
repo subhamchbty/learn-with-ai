@@ -21,6 +21,7 @@ export class AiService {
       const result = await this.langChainProvider.generateTopics(
         dto.prompt,
         dto.level,
+        dto.excludeTopics,
       );
 
       // Track token usage if user is authenticated
@@ -37,6 +38,7 @@ export class AiService {
         userId,
         metadata: {
           topicsCount: result.topics?.length || 0,
+          coreTopicsCount: result.topics?.filter(t => t.isCore).length || 0,
         },
       });
 
@@ -61,8 +63,9 @@ export class AiService {
       }
 
       // Save the generated study plan to the database
+      let savedPlanId: string | undefined;
       try {
-        await this.studyPlansService.create({
+        const savedPlan = await this.studyPlansService.create({
           title: data.title,
           description: data.description,
           prompt: dto.prompt,
@@ -71,6 +74,7 @@ export class AiService {
           schedule: data.schedule,
           userId,
         });
+        savedPlanId = savedPlan.id;
       } catch (dbError) {
         console.error('Error saving study plan to database:', dbError);
         // Continue and return the plan even if database save fails
@@ -86,10 +90,14 @@ export class AiService {
         metadata: {
           selectedTopicsCount: dto.selectedTopics?.length || 0,
           scheduleItemsCount: data.schedule?.length || 0,
+          studyPlanId: savedPlanId,
         },
       });
 
-      return data;
+      return {
+        ...data,
+        studyPlanId: savedPlanId,
+      };
     } catch (error) {
       console.error('Error generating plan:', error);
       throw new InternalServerErrorException('Failed to generate plan');

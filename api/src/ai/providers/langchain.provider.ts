@@ -26,16 +26,30 @@ export class LangChainProvider {
     /**
      * Generate topics using LangChain with structured output
      */
-    async generateTopics(prompt: string, level: string): Promise<{ topics: string[]; tokensUsed: number }> {
-        // Define the schema for topics response - allow slight variance
+    async generateTopics(prompt: string, level: string, excludeTopics?: string[]): Promise<{ topics: Array<{ name: string; isCore: boolean }>; tokensUsed: number }> {
+        // Define the schema for topics response with core flag
         const topicsSchema = z.object({
-            topics: z.array(z.string()).min(15).max(25).describe('Array of approximately 20 distinct topics'),
+            topics: z.array(
+                z.object({
+                    name: z.string().describe('Topic name'),
+                    isCore: z.boolean().describe('Whether this is a core/essential topic that should be automatically included'),
+                })
+            ).min(15).max(25).describe('Array of approximately 20 distinct topics with core flags'),
         });
 
         const parser = StructuredOutputParser.fromZodSchema(topicsSchema);
 
+        const excludeInstruction = excludeTopics && excludeTopics.length > 0
+            ? `\n\nEXCLUDE the following topics as they are already covered: ${excludeTopics.join(', ')}. Do NOT suggest any of these or similar variations.`
+            : '';
+
         const promptTemplate = PromptTemplate.fromTemplate(
             `Generate a list of exactly 20 distinct sub-topics, concepts, or skills for learning "{subject}" at a "{level}" level.
+
+For each topic, indicate whether it is a CORE/ESSENTIAL topic (isCore: true) that forms the fundamental foundation and must be covered, or an OPTIONAL topic (isCore: false) that provides additional depth.
+
+Core topics should represent the absolute fundamentals - typically 8-12 topics that are essential for mastery.
+Optional topics provide specialization, advanced concepts, or nice-to-have knowledge.{excludeInstruction}
       
 {format_instructions}
 
@@ -47,6 +61,7 @@ Ensure each topic is specific, actionable, and relevant to the subject matter.`,
         const formattedPrompt = await promptTemplate.format({
             subject: prompt,
             level,
+            excludeInstruction,
             format_instructions: parser.getFormatInstructions(),
         });
 
@@ -68,7 +83,10 @@ Ensure each topic is specific, actionable, and relevant to the subject matter.`,
             // Pad with generic topics if too few (shouldn't happen often)
             const needed = 20 - normalizedTopics.length;
             for (let i = 0; i < needed; i++) {
-                normalizedTopics.push(`Additional Topic ${i + 1}`);
+                normalizedTopics.push({
+                    name: `Additional Topic ${i + 1}`,
+                    isCore: false,
+                });
             }
         }
 

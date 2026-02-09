@@ -1,45 +1,29 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowLeft, Check, ChevronRight, Loader2, Layers } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Check, ChevronRight, Loader2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AICreationForm } from "./AICreationForm";
 import { aiApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 // --- Study Plan Types ---
-interface Lesson {
-    title: string;
-    description: string;
-}
-
-interface PlanTopic {
-    title: string;
-    lessons: Lesson[];
-}
-
-interface ScheduleItem {
-    period: string;
-    objective: string;
-    topics: PlanTopic[];
-}
-
-interface StudyPlan {
-    title: string;
-    description: string;
-    schedule: ScheduleItem[];
+interface Topic {
+    name: string;
+    isCore: boolean;
 }
 
 export const CreateStudyPlan = () => {
     const { updateTokens } = useAuth();
-    const [step, setStep] = useState<'input' | 'selection' | 'result'>('input');
+    const router = useRouter();
+    const [step, setStep] = useState<'input' | 'selection'>('input');
     const [isLoading, setIsLoading] = useState(false);
 
     // Data State
     const [inputData, setInputData] = useState<{ prompt: string; level: string } | null>(null);
-    const [generatedTopics, setGeneratedTopics] = useState<string[]>([]);
+    const [generatedTopics, setGeneratedTopics] = useState<Topic[]>([]);
     const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
-    const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
 
     // Step 1: Generate Topics List
     const handleGenerateTopics = async ({ prompt, level }: { prompt: string; level: string }) => {
@@ -50,6 +34,13 @@ export const CreateStudyPlan = () => {
 
             if (data.topics && Array.isArray(data.topics)) {
                 setGeneratedTopics(data.topics);
+
+                // Auto-select all core topics
+                const coreTopicNames = data.topics
+                    .filter((topic: Topic) => topic.isCore)
+                    .map((topic: Topic) => topic.name);
+                setSelectedTopics(coreTopicNames);
+
                 setStep('selection');
 
                 // Update token usage in sidebar
@@ -76,12 +67,14 @@ export const CreateStudyPlan = () => {
                 selectedTopics
             });
 
-            setStudyPlan(data);
-            setStep('result');
-
             // Update token usage in sidebar
             if (data.tokensUsed) {
                 updateTokens(data.tokensUsed);
+            }
+
+            // Redirect to the study plan view
+            if (data.studyPlanId) {
+                router.push(`/study-plans/${data.studyPlanId}`);
             }
         } catch (error) {
             console.error("Error generating plan:", error);
@@ -90,9 +83,14 @@ export const CreateStudyPlan = () => {
         }
     };
 
-    const toggleTopic = (topic: string) => {
+    const toggleTopic = (topicName: string, isCore: boolean) => {
+        // Don't allow deselecting core topics
+        if (isCore && selectedTopics.includes(topicName)) {
+            return;
+        }
+
         setSelectedTopics(prev =>
-            prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
+            prev.includes(topicName) ? prev.filter(t => t !== topicName) : [...prev, topicName]
         );
     };
 
@@ -100,7 +98,6 @@ export const CreateStudyPlan = () => {
         setStep('input');
         setGeneratedTopics([]);
         setSelectedTopics([]);
-        setStudyPlan(null);
         setInputData(null);
     };
 
@@ -122,6 +119,9 @@ export const CreateStudyPlan = () => {
     }
 
     if (step === 'selection') {
+        const coreTopicsCount = generatedTopics.filter(t => t.isCore).length;
+        const optionalTopicsCount = generatedTopics.length - coreTopicsCount;
+
         return (
             <div className="mx-auto w-full max-w-3xl space-y-8 p-4 py-8">
                 <div className="space-y-2 text-center">
@@ -129,25 +129,39 @@ export const CreateStudyPlan = () => {
                         <ArrowLeft className="w-4 h-4" /> Start Over
                     </button>
                     <h2 className="text-2xl font-bold tracking-tight text-zinc-900">Customize Your Curriculum</h2>
-                    <p className="text-zinc-500">Select specific topics to emphasize. Essential concepts for <strong>{inputData?.level}</strong> level will be included automatically.</p>
+                    <p className="text-zinc-500">
+                        <span className="inline-flex items-center gap-1">
+                            <Lock className="w-3.5 h-3.5" />
+                            <strong>{coreTopicsCount} essential topics</strong>
+                        </span>
+                        {' '}are automatically included. Select from {optionalTopicsCount} optional topics to enhance your plan.
+                    </p>
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-2">
                     {generatedTopics.map((topic, i) => {
-                        const isSelected = selectedTopics.includes(topic);
+                        const isSelected = selectedTopics.includes(topic.name);
+                        const isCore = topic.isCore;
                         return (
                             <button
                                 key={i}
-                                onClick={() => toggleTopic(topic)}
+                                onClick={() => toggleTopic(topic.name, isCore)}
                                 className={cn(
                                     "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition-all border",
-                                    isSelected
-                                        ? "bg-zinc-900 text-white border-zinc-900 shadow-sm"
-                                        : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
+                                    isCore
+                                        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-md cursor-default"
+                                        : isSelected
+                                            ? "bg-zinc-900 text-white border-zinc-900 shadow-sm"
+                                            : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
                                 )}
+                                title={isCore ? "Essential topic - always included" : undefined}
                             >
-                                {isSelected && <Check className="mr-1.5 h-3.5 w-3.5" />}
-                                {topic}
+                                {isCore ? (
+                                    <Lock className="mr-1.5 h-3.5 w-3.5" />
+                                ) : isSelected ? (
+                                    <Check className="mr-1.5 h-3.5 w-3.5" />
+                                ) : null}
+                                {topic.name}
                             </button>
                         )
                     })}
@@ -171,73 +185,6 @@ export const CreateStudyPlan = () => {
                             </>
                         )}
                     </button>
-                </div>
-            </div>
-        );
-    }
-
-    if (step === 'result' && studyPlan) {
-        return (
-            <div className="mx-auto w-full max-w-4xl space-y-8 p-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Header */}
-                <div className="flex items-start justify-between border-b border-zinc-200 pb-6">
-                    <div className="space-y-1">
-                        <button onClick={handleReset} className="text-sm text-zinc-500 hover:text-zinc-900 flex items-center gap-1 mb-2">
-                            <ArrowLeft className="w-4 h-4" /> Create New
-                        </button>
-                        <h1 className="text-3xl font-bold tracking-tight text-zinc-900">{studyPlan.title}</h1>
-                        <p className="text-zinc-500 max-w-2xl">{studyPlan.description}</p>
-                    </div>
-                </div>
-
-                {/* Plan Timeline */}
-                <div className="space-y-8">
-                    {studyPlan.schedule.map((item, idx) => (
-                        <div key={idx} className="relative pl-8 md:pl-0">
-                            {/* Mobile Timeline Line */}
-                            <div className="absolute left-0 top-0 bottom-0 w-px bg-zinc-200 md:hidden"></div>
-
-                            <div className="md:grid md:grid-cols-[200px_1fr] md:gap-8">
-                                {/* Period Column */}
-                                <div className="mb-4 md:mb-0 relative">
-                                    {/* Desktop Timeline Dot */}
-                                    <div className="hidden md:block absolute right-[-17px] top-1.5 h-4 w-4 rounded-full border-4 border-white bg-zinc-200"></div>
-
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-900 md:hidden z-10 ring-4 ring-white">
-                                            {idx + 1}
-                                        </span>
-                                        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-900">{item.period}</h3>
-                                    </div>
-                                    <p className="text-xs text-zinc-500 md:pr-8">{item.objective}</p>
-                                </div>
-
-                                {/* Content Column */}
-                                <div className="space-y-6">
-                                    {item.topics.map((topic, tIdx) => (
-                                        <div key={tIdx} className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <Layers className="h-4 w-4 text-zinc-500" />
-                                                <h4 className="font-semibold text-zinc-900">{topic.title}</h4>
-                                            </div>
-
-                                            <div className="space-y-3">
-                                                {topic.lessons.map((lesson, lIdx) => (
-                                                    <div key={lIdx} className="group flex items-start gap-3 rounded-lg p-2 hover:bg-zinc-50 transition-colors">
-                                                        <div className="mt-1 h-1.5 w-1.5 rounded-full bg-zinc-300 group-hover:bg-zinc-900 transition-colors shrink-0"></div>
-                                                        <div>
-                                                            <div className="text-sm font-medium text-zinc-900">{lesson.title}</div>
-                                                            <div className="text-xs text-zinc-500 mt-0.5">{lesson.description}</div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
                 </div>
             </div>
         );

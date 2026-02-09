@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, Layers, Sparkles, Check, Plus } from "lucide-react";
+import { ArrowLeft, Loader2, Layers, Sparkles, Check, Plus, Lock } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { useAuth } from "@/lib/auth-context";
 import { studyPlansApi, aiApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+interface Topic {
+    name: string;
+    isCore: boolean;
+}
 
 interface Lesson {
     title: string;
@@ -46,7 +51,7 @@ export default function StudyPlanViewClient() {
     const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
     const [loading, setLoading] = useState(true);
     const [refineMode, setRefineMode] = useState(false);
-    const [generatedTopics, setGeneratedTopics] = useState<string[]>([]);
+    const [generatedTopics, setGeneratedTopics] = useState<Topic[]>([]);
     const [selectedNewTopics, setSelectedNewTopics] = useState<string[]>([]);
     const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
@@ -85,17 +90,24 @@ export default function StudyPlanViewClient() {
             const data = await aiApi.generateTopics({
                 prompt: studyPlan.prompt,
                 level: studyPlan.level,
+                excludeTopics: studyPlan.selectedTopics || [],
             });
 
             if (data.topics && Array.isArray(data.topics)) {
                 // Filter out topics that are already in the study plan
                 const existingTopics = studyPlan.selectedTopics || [];
                 const newTopics = data.topics.filter(
-                    (topic: string) => !existingTopics.some(
-                        (existing) => existing.toLowerCase() === topic.toLowerCase()
+                    (topic: Topic) => !existingTopics.some(
+                        (existing) => existing.toLowerCase() === topic.name.toLowerCase()
                     )
                 );
                 setGeneratedTopics(newTopics);
+
+                // Auto-select core topics from the new topics
+                const coreTopicNames = newTopics
+                    .filter((topic: Topic) => topic.isCore)
+                    .map((topic: Topic) => topic.name);
+                setSelectedNewTopics(coreTopicNames);
 
                 if (data.tokensUsed) {
                     updateTokens(data.tokensUsed);
@@ -143,9 +155,14 @@ export default function StudyPlanViewClient() {
         }
     };
 
-    const toggleTopic = (topic: string) => {
+    const toggleTopic = (topicName: string, isCore: boolean) => {
+        // Don't allow deselecting core topics
+        if (isCore && selectedNewTopics.includes(topicName)) {
+            return;
+        }
+
         setSelectedNewTopics(prev =>
-            prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
+            prev.includes(topicName) ? prev.filter(t => t !== topicName) : [...prev, topicName]
         );
     };
 
@@ -195,9 +212,38 @@ export default function StudyPlanViewClient() {
                                     Refine Your Study Plan
                                 </h2>
                                 <p className="text-zinc-500">
-                                    Select additional topics to add to your study plan
+                                    {generatedTopics.filter(t => t.isCore).length > 0 && (
+                                        <span className="inline-flex items-center gap-1 mr-1">
+                                            <Lock className="w-3.5 h-3.5" />
+                                            <strong>{generatedTopics.filter(t => t.isCore).length} essential topics</strong>
+                                        </span>
+                                    )}
+                                    Select additional topics to enhance your study plan
                                 </p>
                             </div>
+
+                            {/* Currently Selected Topics */}
+                            {studyPlan.selectedTopics && studyPlan.selectedTopics.length > 0 && (
+                                <div className="space-y-3 p-4 rounded-lg bg-zinc-50 border border-zinc-200">
+                                    <h3 className="text-sm font-semibold text-zinc-700">
+                                        Currently Included Topics ({studyPlan.selectedTopics.length})
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {studyPlan.selectedTopics.map((topic, i) => (
+                                            <span
+                                                key={i}
+                                                className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-zinc-200 text-zinc-700 border border-zinc-300"
+                                            >
+                                                <Check className="mr-1 h-3 w-3" />
+                                                {topic}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-zinc-500 italic">
+                                        These topics are excluded from suggestions below
+                                    </p>
+                                </div>
+                            )}
 
                             {isGeneratingTopics ? (
                                 <div className="flex items-center justify-center py-12">
@@ -209,22 +255,30 @@ export default function StudyPlanViewClient() {
                                         <>
                                             <div className="flex flex-wrap justify-center gap-2">
                                                 {generatedTopics.map((topic, i) => {
-                                                    const isSelected = selectedNewTopics.includes(topic);
+                                                    const isSelected = selectedNewTopics.includes(topic.name);
+                                                    const isCore = topic.isCore;
                                                     return (
                                                         <button
                                                             key={i}
-                                                            onClick={() => toggleTopic(topic)}
+                                                            onClick={() => toggleTopic(topic.name, isCore)}
                                                             disabled={isRefining}
                                                             className={cn(
                                                                 "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition-all border",
-                                                                isSelected
-                                                                    ? "bg-zinc-900 text-white border-zinc-900 shadow-sm"
-                                                                    : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50",
+                                                                isCore
+                                                                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-md cursor-default"
+                                                                    : isSelected
+                                                                        ? "bg-zinc-900 text-white border-zinc-900 shadow-sm"
+                                                                        : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50",
                                                                 isRefining && "opacity-50 cursor-not-allowed"
                                                             )}
+                                                            title={isCore ? "Essential topic - always included" : undefined}
                                                         >
-                                                            {isSelected && <Check className="mr-1.5 h-3.5 w-3.5" />}
-                                                            {topic}
+                                                            {isCore ? (
+                                                                <Lock className="mr-1.5 h-3.5 w-3.5" />
+                                                            ) : isSelected ? (
+                                                                <Check className="mr-1.5 h-3.5 w-3.5" />
+                                                            ) : null}
+                                                            {topic.name}
                                                         </button>
                                                     );
                                                 })}
@@ -286,9 +340,9 @@ export default function StudyPlanViewClient() {
                                 </div>
                                 <button
                                     onClick={handleStartRefine}
-                                    className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md bg-zinc-900 px-4 text-sm font-medium text-zinc-50 shadow transition-colors hover:bg-zinc-900/90 ml-4"
+                                    className="inline-flex h-8 items-center justify-center whitespace-nowrap rounded-md border border-zinc-200 bg-transparent px-3 text-xs font-normal text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-700 hover:border-zinc-300 ml-4"
                                 >
-                                    <Plus className="mr-2 h-4 w-4" />
+                                    <Plus className="mr-1.5 h-3.5 w-3.5" />
                                     Refine Plan
                                 </button>
                             </div>

@@ -3,7 +3,7 @@ import apiClient from './axios';
 // AI-related API calls
 export const aiApi = {
     // Generate topics for study plan
-    generateTopics: async (data: { prompt: string; level: string }) => {
+    generateTopics: async (data: { prompt: string; level: string; excludeTopics?: string[] }) => {
         const response = await apiClient.post('/api/ai/generate-topics', data);
         return response.data;
     },

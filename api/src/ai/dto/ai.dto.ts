@@ -6,6 +6,11 @@ export class GenerateTopicsDto {
 
   @IsString()
   level: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  excludeTopics?: string[];
 }
 
 export class GeneratePlanDto {

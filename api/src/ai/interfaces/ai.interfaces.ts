@@ -1,5 +1,11 @@
+export interface Topic {
+  name: string;
+  isCore: boolean;
+}
+
 export interface TopicsResponse {
-  topics: string[];
+  topics: Topic[];
+  tokensUsed?: number;
 }
 
 export interface Lesson {
@@ -23,4 +29,5 @@ export interface StudyPlan {
   description: string;
   schedule: ScheduleItem[];
   tokensUsed?: number;
+  studyPlanId?: string;
 }
