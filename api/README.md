@@ -5,7 +5,7 @@ Backend API for the Learn with AI platform, built with NestJS.
 ## Features
 
 - RESTful API endpoints for AI-powered learning content generation
-- Google Gemini AI integration
+- Groq AI integration with Llama models
 - PostgreSQL database with TypeORM
 - Automatic study plan persistence
 - Database migrations for safe schema management
@@ -18,7 +18,7 @@ Backend API for the Learn with AI platform, built with NestJS.
 - Node.js 18+
 - npm or yarn
 - PostgreSQL 12+
-- Google Gemini API key
+- Groq API key
 
 ## Installation
 
@@ -29,7 +29,7 @@ Backend API for the Learn with AI platform, built with NestJS.
 
 2. Create a `.env` file (or copy from `.env.example`):
    ```env
-   GEMINI_API_KEY=your_api_key_here
+   GROQ_API_KEY=your_api_key_here
    PORT=3001
    NODE_ENV=development
    CORS_ORIGIN=http://localhost:3000
@@ -191,7 +191,7 @@ See [MIGRATIONS.md](./MIGRATIONS.md) for more details.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GEMINI_API_KEY` | Google Gemini API key | Required |
+| `GROQ_API_KEY` | Groq API key | Required |
 | `PORT` | Server port | 3001 |
 | `NODE_ENV` | Environment | development |
 | `CORS_ORIGIN` | Allowed CORS origin | http://localhost:3000 |

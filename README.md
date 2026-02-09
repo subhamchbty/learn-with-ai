@@ -27,7 +27,7 @@ This project consists of two main parts:
 ### Backend (API)
 - **Framework**: NestJS 10
 - **Language**: TypeScript
-- **AI Integration**: Google Gemini AI (@google/genai)
+- **AI Integration**: Groq AI with Llama models (@langchain/groq)
 - **Architecture**: Modular, controller-service pattern
 
 ## Getting Started
@@ -36,7 +36,7 @@ This project consists of two main parts:
 
 - Node.js 18+
 - npm or yarn
-- Google Gemini API key ([Get one here](https://makersuite.google.com/app/apikey))
+- Groq API key ([Get one here](https://console.groq.com/keys))
 
 ### Installation
 
@@ -49,7 +49,7 @@ This project consists of two main parts:
    
    # Create .env file
    cp .env.example .env
-   # Edit .env and add your GEMINI_API_KEY
+   # Edit .env and add your GROQ_API_KEY
    
    # Start the API server
    npm run start:dev
@@ -190,7 +190,7 @@ npm start
 ### API (.env)
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GEMINI_API_KEY` | Your Google Gemini API key | Required |
+| `GROQ_API_KEY` | Your Groq API key | Required |
 | `PORT` | Server port | 3001 |
 | `NODE_ENV` | Environment | development |
 | `CORS_ORIGIN` | Allowed CORS origin | http://localhost:3000 |

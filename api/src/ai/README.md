@@ -10,7 +10,7 @@ The AI functionality is now separated into distinct layers:
 - Encapsulates all LangChain-specific logic
 - Handles prompt templates, chains, and structured output parsing
 - Uses Zod schemas for type-safe output validation
-- Configures the Google Generative AI model (Gemini)
+- Configures the Groq AI model (Llama)
 
 ### 2. **AI Service** (`ai.service.ts`)
 - Business logic layer
@@ -94,14 +94,14 @@ async generateCourse(topic: string): Promise<Course> {
 
 The provider is configured via environment variables:
 
-- `GEMINI_API_KEY`: Google Generative AI API key
+- `GROQ_API_KEY`: Groq API key
 
 ## Dependencies
 
 ```json
 {
   "@langchain/core": "^x.x.x",
-  "@langchain/google-genai": "^x.x.x",
+  "@langchain/groq": "^x.x.x",
   "langchain": "^x.x.x",
   "zod": "^x.x.x"
 }

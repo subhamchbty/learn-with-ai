@@ -1,24 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatGroq } from '@langchain/groq';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { z } from 'zod';
 
 @Injectable()
 export class LangChainProvider {
-    private model: ChatGoogleGenerativeAI;
+    private model: ChatGroq;
 
     constructor(private configService: ConfigService) {
-        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        const apiKey = this.configService.get<string>('GROQ_API_KEY');
 
         if (!apiKey) {
-            throw new Error('GEMINI_API_KEY is not configured');
+            throw new Error('GROQ_API_KEY is not configured');
         }
 
-        this.model = new ChatGoogleGenerativeAI({
+        this.model = new ChatGroq({
             apiKey,
-            model: 'gemini-3-flash-preview',
+            model: 'llama-3.3-70b-versatile',
             temperature: 0.7,
         });
     }
@@ -139,7 +139,7 @@ Do not generate full lesson content, just the structure.
 
     /**
      * Estimate tokens used (rough approximation: 1 token ≈ 4 characters)
-     * For more accuracy, integrate with the actual Gemini API token counting
+     * For more accuracy, integrate with the actual Groq API token counting
      */
     private estimateTokens(input: string, level: string, output: string): number {
         const inputTokens = Math.ceil((input.length + level.length) / 4);
@@ -150,7 +150,7 @@ Do not generate full lesson content, just the structure.
     /**
      * Get the underlying LangChain model for advanced use cases
      */
-    getModel(): ChatGoogleGenerativeAI {
+    getModel(): ChatGroq {
         return this.model;
     }
 }
