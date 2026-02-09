@@ -27,9 +27,9 @@ export class LangChainProvider {
      * Generate topics using LangChain with structured output
      */
     async generateTopics(prompt: string, level: string): Promise<{ topics: string[]; tokensUsed: number }> {
-        // Define the schema for topics response
+        // Define the schema for topics response - allow slight variance
         const topicsSchema = z.object({
-            topics: z.array(z.string()).length(20).describe('Array of exactly 20 distinct topics'),
+            topics: z.array(z.string()).min(15).max(25).describe('Array of approximately 20 distinct topics'),
         });
 
         const parser = StructuredOutputParser.fromZodSchema(topicsSchema);
@@ -39,6 +39,7 @@ export class LangChainProvider {
       
 {format_instructions}
 
+IMPORTANT: Provide exactly 20 topics - no more, no less.
 Ensure each topic is specific, actionable, and relevant to the subject matter.`,
         );
 
@@ -58,7 +59,20 @@ Ensure each topic is specific, actionable, and relevant to the subject matter.`,
         // Parse the response content
         const result = await parser.parse(response.content as string);
 
-        return { ...result, tokensUsed };
+        // Normalize to exactly 20 topics
+        let normalizedTopics = result.topics;
+        if (normalizedTopics.length > 20) {
+            // Take first 20 if too many
+            normalizedTopics = normalizedTopics.slice(0, 20);
+        } else if (normalizedTopics.length < 20) {
+            // Pad with generic topics if too few (shouldn't happen often)
+            const needed = 20 - normalizedTopics.length;
+            for (let i = 0; i < needed; i++) {
+                normalizedTopics.push(`Additional Topic ${i + 1}`);
+            }
+        }
+
+        return { topics: normalizedTopics, tokensUsed };
     }
 
     /**

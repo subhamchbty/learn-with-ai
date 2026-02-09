@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { StudyPlan } from './study-plans/entities/study-plan.entity';
 import { User } from './users/entities/user.entity';
+import { AiRequest } from './ai/entities/ai-request.entity';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { User } from './users/entities/user.entity';
           username: configService.get('DB_USERNAME', 'postgres'),
           password: configService.get('DB_PASSWORD', 'postgres'),
           database: configService.get('DB_NAME', 'learn_with_ai'),
-          entities: [StudyPlan, User],
+          entities: [StudyPlan, User, AiRequest],
           migrations: ['dist/migrations/*.js'],
           migrationsTableName: 'migrations',
           migrationsRun: isProduction, // Auto-run migrations in production
