@@ -11,8 +11,11 @@ import {
     Command,
     Sparkles,
     ChevronRight,
+    LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {
     activePage: string;
@@ -22,6 +25,9 @@ interface SidebarProps {
 export const Sidebar = ({ activePage, setActivePage }: SidebarProps) => {
     const [language, setLanguage] = useState("English");
     const [openGroups, setOpenGroups] = useState<string[]>(["create-ai"]);
+    const [showUserMenu, setShowUserMenu] = useState(false);
+    const { user, logout } = useAuth();
+    const router = useRouter();
 
     // Navigation structure
     const navigation = [
@@ -43,6 +49,24 @@ export const Sidebar = ({ activePage, setActivePage }: SidebarProps) => {
         setOpenGroups(prev =>
             prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
         );
+    };
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            router.push('/login');
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
+    };
+
+    const getUserInitials = (name: string) => {
+        return name
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
     };
 
     return (
@@ -134,16 +158,38 @@ export const Sidebar = ({ activePage, setActivePage }: SidebarProps) => {
 
             {/* Sidebar Footer (User) */}
             <div className="border-t border-zinc-200 p-2">
-                <button className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-zinc-100 transition-colors group">
-                    <div className="h-8 w-8 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center shrink-0">
-                        <span className="font-semibold text-xs text-zinc-600">JD</span>
-                    </div>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate font-semibold text-zinc-900">John Doe</span>
-                        <span className="truncate text-xs text-zinc-500">m@example.com</span>
-                    </div>
-                    <ChevronsUpDown className="ml-auto size-4 text-zinc-500 group-hover:text-zinc-900" />
-                </button>
+                <div className="relative">
+                    <button
+                        onClick={() => setShowUserMenu(!showUserMenu)}
+                        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-zinc-100 transition-colors group"
+                    >
+                        <div className="h-8 w-8 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center shrink-0">
+                            <span className="font-semibold text-xs text-zinc-600">
+                                {user ? getUserInitials(user.name) : 'U'}
+                            </span>
+                        </div>
+                        <div className="grid flex-1 text-left text-sm leading-tight">
+                            <span className="truncate font-semibold text-zinc-900">
+                                {user?.name || 'Guest'}
+                            </span>
+                            <span className="truncate text-xs text-zinc-500">
+                                {user?.email || ''}
+                            </span>
+                        </div>
+                        <ChevronsUpDown className="ml-auto size-4 text-zinc-500 group-hover:text-zinc-900" />
+                    </button>
+                    {showUserMenu && (
+                        <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-zinc-200 rounded-lg shadow-lg overflow-hidden">
+                            <button
+                                onClick={handleLogout}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 transition-colors"
+                            >
+                                <LogOut className="size-4" />
+                                Logout
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         </aside>
     );

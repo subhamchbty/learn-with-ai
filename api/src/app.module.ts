@@ -3,7 +3,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiModule } from './ai/ai.module';
 import { StudyPlansModule } from './study-plans/study-plans.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 import { StudyPlan } from './study-plans/entities/study-plan.entity';
+import { User } from './users/entities/user.entity';
 
 @Module({
   imports: [
@@ -22,7 +25,7 @@ import { StudyPlan } from './study-plans/entities/study-plan.entity';
           username: configService.get('DB_USERNAME', 'postgres'),
           password: configService.get('DB_PASSWORD', 'postgres'),
           database: configService.get('DB_NAME', 'learn_with_ai'),
-          entities: [StudyPlan],
+          entities: [StudyPlan, User],
           migrations: ['dist/migrations/*.js'],
           migrationsTableName: 'migrations',
           migrationsRun: isProduction, // Auto-run migrations in production
@@ -32,6 +35,8 @@ import { StudyPlan } from './study-plans/entities/study-plan.entity';
     }),
     AiModule,
     StudyPlansModule,
+    AuthModule,
+    UsersModule,
   ],
 })
 export class AppModule { }

@@ -7,6 +7,7 @@ const apiClient = axios.create({
         'Content-Type': 'application/json',
     },
     timeout: 30000, // 30 seconds
+    withCredentials: true, // Enable session cookies
 });
 
 // Request interceptor for adding auth tokens, logging, etc.
@@ -32,8 +33,14 @@ apiClient.interceptors.response.use(
     (error) => {
         // Handle common errors
         if (error.response) {
-            // Server responded with error status
-            console.error('API Error:', error.response.status, error.response.data);
+            // Don't log 401 errors for auth/me endpoint (expected when not logged in)
+            const isAuthCheck = error.config?.url?.includes('/auth/me');
+            const is401 = error.response.status === 401;
+
+            if (!(isAuthCheck && is401)) {
+                // Server responded with error status
+                console.error('API Error:', error.response.status, error.response.data);
+            }
         } else if (error.request) {
             // Request made but no response received
             console.error('Network Error:', error.message);
