@@ -13,13 +13,25 @@ export const aiApi = {
         const response = await apiClient.post('/api/ai/generate-plan', data);
         return response.data;
     },
+
+    // Refine existing study plan with additional topics
+    refinePlan: async (data: { studyPlanId: string; additionalTopics: string[] }) => {
+        const response = await apiClient.post('/api/ai/refine-plan', data);
+        return response.data;
+    },
 };
 
 // Study Plans API calls
 export const studyPlansApi = {
-    // Get all study plans for the logged-in user
-    getAll: async () => {
-        const response = await apiClient.get('/api/study-plans');
+    // Get all study plans for the logged-in user with pagination
+    getAll: async (page: number = 1, limit: number = 9) => {
+        const response = await apiClient.get(`/api/study-plans?page=${page}&limit=${limit}`);
+        return response.data;
+    },
+
+    // Get a specific study plan by ID
+    getOne: async (id: string) => {
+        const response = await apiClient.get(`/api/study-plans/${id}`);
         return response.data;
     },
 };

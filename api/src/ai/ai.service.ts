@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { GenerateTopicsDto, GeneratePlanDto } from './dto/ai.dto';
+import { GenerateTopicsDto, GeneratePlanDto, RefineStudyPlanDto } from './dto/ai.dto';
 import { TopicsResponse, StudyPlan } from './interfaces/ai.interfaces';
 import { StudyPlansService } from '../study-plans/study-plans.service';
 import { UsersService } from '../users/users.service';
@@ -93,6 +93,68 @@ export class AiService {
     } catch (error) {
       console.error('Error generating plan:', error);
       throw new InternalServerErrorException('Failed to generate plan');
+    }
+  }
+
+  async refineStudyPlan(dto: RefineStudyPlanDto, userId: string): Promise<StudyPlan> {
+    try {
+      // Get the existing study plan
+      const existingPlan = await this.studyPlansService.findOne(dto.studyPlanId);
+
+      if (!existingPlan) {
+        throw new InternalServerErrorException('Study plan not found');
+      }
+
+      // Verify the user owns this study plan
+      if (existingPlan.userId !== userId) {
+        throw new InternalServerErrorException('Unauthorized access to study plan');
+      }
+
+      // Use LangChain to refine the plan with additional topics
+      const refinedData = await this.langChainProvider.refinePlan(
+        {
+          title: existingPlan.title,
+          description: existingPlan.description,
+          prompt: existingPlan.prompt,
+          level: existingPlan.level,
+          selectedTopics: existingPlan.selectedTopics || [],
+          schedule: existingPlan.schedule,
+        },
+        dto.additionalTopics,
+      );
+
+      // Track token usage
+      if (refinedData.tokensUsed) {
+        await this.usersService.incrementTokenUsage(userId, refinedData.tokensUsed);
+      }
+
+      // Update the study plan in the database
+      await this.studyPlansService.update(dto.studyPlanId, {
+        title: refinedData.title,
+        description: refinedData.description,
+        selectedTopics: [...(existingPlan.selectedTopics || []), ...dto.additionalTopics],
+        schedule: refinedData.schedule,
+      });
+
+      // Log request asynchronously
+      this.aiRequestTrackingService.logRequest({
+        requestType: RequestType.REFINE_PLAN,
+        prompt: existingPlan.prompt,
+        level: existingPlan.level,
+        tokensUsed: refinedData.tokensUsed || 0,
+        userId,
+        metadata: {
+          additionalTopics: dto.additionalTopics,
+          additionalTopicsCount: dto.additionalTopics.length,
+          studyPlanId: dto.studyPlanId,
+          originalTitle: existingPlan.title,
+        },
+      });
+
+      return refinedData;
+    } catch (error) {
+      console.error('Error refining study plan:', error);
+      throw new InternalServerErrorException('Failed to refine study plan');
     }
   }
 }

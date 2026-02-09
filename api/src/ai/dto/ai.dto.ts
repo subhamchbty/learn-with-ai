@@ -20,3 +20,12 @@ export class GeneratePlanDto {
   @IsString({ each: true })
   selectedTopics?: string[];
 }
+
+export class RefineStudyPlanDto {
+  @IsString()
+  studyPlanId: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  additionalTopics: string[];
+}

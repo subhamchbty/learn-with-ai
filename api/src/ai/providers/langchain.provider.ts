@@ -162,6 +162,110 @@ Do not generate full lesson content, just the structure.
     }
 
     /**
+     * Refine an existing study plan by incorporating additional topics
+     */
+    async refinePlan(
+        existingPlan: {
+            title: string;
+            description: string;
+            prompt: string;
+            level: string;
+            selectedTopics: string[];
+            schedule: any;
+        },
+        additionalTopics: string[],
+    ): Promise<{
+        title: string;
+        description: string;
+        schedule: Array<{
+            period: string;
+            objective: string;
+            topics: Array<{
+                title: string;
+                lessons: Array<{
+                    title: string;
+                    description: string;
+                }>;
+            }>;
+        }>;
+        tokensUsed: number;
+    }> {
+        // Define the schema for study plan response
+        const studyPlanSchema = z.object({
+            title: z.string().describe('Compelling title for the study plan'),
+            description: z.string().describe('Brief overview of the study plan'),
+            schedule: z.array(
+                z.object({
+                    period: z.string().describe('Time period (e.g., Week 1, Module 1)'),
+                    objective: z.string().describe('Learning objective for this period'),
+                    topics: z.array(
+                        z.object({
+                            title: z.string().describe('Topic name'),
+                            lessons: z.array(
+                                z.object({
+                                    title: z.string().describe('Lesson title'),
+                                    description: z.string().describe('Brief lesson description'),
+                                }),
+                            ),
+                        }),
+                    ),
+                }),
+            ),
+        });
+
+        const parser = StructuredOutputParser.fromZodSchema(studyPlanSchema);
+
+        const promptTemplate = PromptTemplate.fromTemplate(
+            `You are refining an existing study plan for "{subject}" at the "{level}" level.
+
+Current Plan:
+Title: {title}
+Description: {description}
+Previously Selected Topics: {previousTopics}
+
+TASK: Integrate the following new topics into the existing schedule WITHOUT removing or significantly altering the existing structure:
+New Topics: {additionalTopics}
+
+INSTRUCTIONS:
+1. Keep the existing timeline structure (periods/weeks/modules)
+2. Add lessons for the new topics either by:
+   - Creating new topic sections within appropriate time periods
+   - Or expanding existing related topics with the new content
+3. Maintain the overall flow and progression of learning
+4. Ensure the refined plan remains cohesive and well-structured
+5. Update the title and description if necessary to reflect the added topics
+
+Existing Schedule Structure:
+{existingSchedule}
+
+{format_instructions}`,
+        );
+
+        // Format the prompt
+        const formattedPrompt = await promptTemplate.format({
+            subject: existingPlan.prompt,
+            level: existingPlan.level,
+            title: existingPlan.title,
+            description: existingPlan.description,
+            previousTopics: existingPlan.selectedTopics?.join(', ') || 'None',
+            additionalTopics: additionalTopics.join(', '),
+            existingSchedule: JSON.stringify(existingPlan.schedule, null, 2),
+            format_instructions: parser.getFormatInstructions(),
+        });
+
+        // Invoke the model to get raw response with metadata
+        const response = await this.model.invoke(formattedPrompt);
+
+        // Extract token usage from response metadata
+        const tokensUsed = this.extractTokenUsage(response);
+
+        // Parse the response content
+        const result = await parser.parse(response.content as string);
+
+        return { ...result, tokensUsed };
+    }
+
+    /**
      * Extract actual token usage from Groq API response metadata
      */
     private extractTokenUsage(response: any): number {

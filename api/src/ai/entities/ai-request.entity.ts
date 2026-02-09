@@ -12,6 +12,7 @@ import { User } from '../../users/entities/user.entity';
 export enum RequestType {
     GENERATE_TOPICS = 'generate_topics',
     GENERATE_PLAN = 'generate_plan',
+    REFINE_PLAN = 'refine_plan',
 }
 
 @Entity('ai_requests')

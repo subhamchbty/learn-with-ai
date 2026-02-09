@@ -22,4 +22,5 @@ export interface StudyPlan {
   title: string;
   description: string;
   schedule: ScheduleItem[];
+  tokensUsed?: number;
 }
