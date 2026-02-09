@@ -45,4 +45,51 @@ export class UsersService {
     ): Promise<boolean> {
         return bcrypt.compare(plainPassword, hashedPassword);
     }
+
+    async incrementTokenUsage(userId: string, tokensUsed: number): Promise<void> {
+        const user = await this.findById(userId);
+        if (!user) return;
+
+        const today = new Date().toISOString().split('T')[0];
+        const lastReset = user.lastTokenReset
+            ? (user.lastTokenReset instanceof Date
+                ? user.lastTokenReset.toISOString().split('T')[0]
+                : new Date(user.lastTokenReset).toISOString().split('T')[0])
+            : null;
+
+        // Reset daily tokens if it's a new day
+        if (lastReset !== today) {
+            user.dailyTokensUsed = tokensUsed;
+            user.lastTokenReset = new Date();
+        } else {
+            user.dailyTokensUsed += tokensUsed;
+        }
+
+        user.totalTokensUsed += tokensUsed;
+        await this.usersRepository.save(user);
+    }
+
+    async getTokenUsage(userId: string): Promise<{ totalTokensUsed: number; dailyTokensUsed: number } | null> {
+        const user = await this.findById(userId);
+        if (!user) return null;
+
+        const today = new Date().toISOString().split('T')[0];
+        const lastReset = user.lastTokenReset
+            ? (user.lastTokenReset instanceof Date
+                ? user.lastTokenReset.toISOString().split('T')[0]
+                : new Date(user.lastTokenReset).toISOString().split('T')[0])
+            : null;
+
+        // Reset daily tokens if it's a new day
+        if (lastReset !== today) {
+            user.dailyTokensUsed = 0;
+            user.lastTokenReset = new Date();
+            await this.usersRepository.save(user);
+        }
+
+        return {
+            totalTokensUsed: user.totalTokensUsed,
+            dailyTokensUsed: user.dailyTokensUsed,
+        };
+    }
 }

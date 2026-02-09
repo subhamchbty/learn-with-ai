@@ -26,7 +26,7 @@ export class LangChainProvider {
     /**
      * Generate topics using LangChain with structured output
      */
-    async generateTopics(prompt: string, level: string): Promise<{ topics: string[] }> {
+    async generateTopics(prompt: string, level: string): Promise<{ topics: string[]; tokensUsed: number }> {
         // Define the schema for topics response
         const topicsSchema = z.object({
             topics: z.array(z.string()).length(20).describe('Array of exactly 20 distinct topics'),
@@ -50,7 +50,11 @@ Ensure each topic is specific, actionable, and relevant to the subject matter.`,
             format_instructions: parser.getFormatInstructions(),
         });
 
-        return result;
+        // Extract token usage from the last model response
+        // Gemini API returns usage metadata in the response
+        const tokensUsed = this.estimateTokens(prompt, level, JSON.stringify(result));
+
+        return { ...result, tokensUsed };
     }
 
     /**
@@ -74,6 +78,7 @@ Ensure each topic is specific, actionable, and relevant to the subject matter.`,
                 }>;
             }>;
         }>;
+        tokensUsed: number;
     }> {
         // Define the schema for study plan response
         const studyPlanSchema = z.object({
@@ -126,8 +131,20 @@ Do not generate full lesson content, just the structure.
             topicsInstruction,
             format_instructions: parser.getFormatInstructions(),
         });
+        // Extract token usage
+        const tokensUsed = this.estimateTokens(prompt, level, JSON.stringify(result));
 
-        return result;
+        return { ...result, tokensUsed };
+    }
+
+    /**
+     * Estimate tokens used (rough approximation: 1 token ≈ 4 characters)
+     * For more accuracy, integrate with the actual Gemini API token counting
+     */
+    private estimateTokens(input: string, level: string, output: string): number {
+        const inputTokens = Math.ceil((input.length + level.length) / 4);
+        const outputTokens = Math.ceil(output.length / 4);
+        return inputTokens + outputTokens;
     }
 
     /**

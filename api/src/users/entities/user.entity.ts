@@ -22,6 +22,15 @@ export class User {
     @Column()
     password: string;
 
+    @Column({ name: 'total_tokens_used', type: 'integer', default: 0 })
+    totalTokensUsed: number;
+
+    @Column({ name: 'daily_tokens_used', type: 'integer', default: 0 })
+    dailyTokensUsed: number;
+
+    @Column({ name: 'last_token_reset', type: 'date', nullable: true })
+    lastTokenReset: Date;
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
 

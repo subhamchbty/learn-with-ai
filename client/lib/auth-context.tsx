@@ -8,7 +8,8 @@ interface User {
     email: string;
     name: string;
     createdAt: string;
-    updatedAt: string;
+    totalTokensUsed?: number;
+    dailyTokensUsed?: number;
 }
 
 interface AuthContextType {

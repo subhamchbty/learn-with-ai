@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
+import TokenUsage from "./TokenUsage";
 
 export const Sidebar = () => {
     const [language, setLanguage] = useState("English");
@@ -57,7 +58,8 @@ export const Sidebar = () => {
         }
     };
 
-    const getUserInitials = (name: string) => {
+    const getUserInitials = (name?: string) => {
+        if (!name) return 'U';
         return name
             .split(' ')
             .map(n => n[0])
@@ -151,6 +153,11 @@ export const Sidebar = () => {
                         )
                     ))}
                 </nav>
+            </div>
+
+            {/* Token Usage Display */}
+            <div className="px-3 pb-3">
+                <TokenUsage />
             </div>
 
             {/* Sidebar Footer (User) */}

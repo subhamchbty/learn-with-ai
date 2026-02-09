@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { GenerateTopicsDto, GeneratePlanDto } from './dto/ai.dto';
 import { TopicsResponse, StudyPlan } from './interfaces/ai.interfaces';
 import { StudyPlansService } from '../study-plans/study-plans.service';
+import { UsersService } from '../users/users.service';
 import { LangChainProvider } from './providers/langchain.provider';
 
 @Injectable()
@@ -9,14 +10,21 @@ export class AiService {
   constructor(
     private langChainProvider: LangChainProvider,
     private studyPlansService: StudyPlansService,
+    private usersService: UsersService,
   ) { }
 
-  async generateTopics(dto: GenerateTopicsDto): Promise<TopicsResponse> {
+  async generateTopics(dto: GenerateTopicsDto, userId?: string): Promise<TopicsResponse> {
     try {
       const result = await this.langChainProvider.generateTopics(
         dto.prompt,
         dto.level,
       );
+
+      // Track token usage if user is authenticated
+      if (userId && result.tokensUsed) {
+        await this.usersService.incrementTokenUsage(userId, result.tokensUsed);
+      }
+
       return result;
     } catch (error) {
       console.error('Error generating topics:', error);
@@ -31,6 +39,11 @@ export class AiService {
         dto.level,
         dto.selectedTopics,
       );
+
+      // Track token usage
+      if (data.tokensUsed) {
+        await this.usersService.incrementTokenUsage(userId, data.tokensUsed);
+      }
 
       // Save the generated study plan to the database
       try {

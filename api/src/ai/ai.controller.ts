@@ -10,8 +10,8 @@ export class AiController {
 
   @Post('generate-topics')
   @HttpCode(HttpStatus.OK)
-  async generateTopics(@Body() dto: GenerateTopicsDto) {
-    return this.aiService.generateTopics(dto);
+  async generateTopics(@Body() dto: GenerateTopicsDto, @Session() session: any) {
+    return this.aiService.generateTopics(dto, session?.userId);
   }
 
   @Post('generate-plan')

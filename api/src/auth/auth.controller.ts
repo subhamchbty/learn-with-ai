@@ -9,14 +9,17 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { UsersService } from '../users/users.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthGuard } from './guards/auth.guard';
-import { CurrentUser } from './decorators/current-user.decorator';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) { }
+    constructor(
+        private readonly authService: AuthService,
+        private readonly usersService: UsersService,
+    ) { }
 
     @Post('signup')
     async signup(@Body() signupDto: SignupDto, @Session() session: any) {
@@ -50,7 +53,17 @@ export class AuthController {
 
     @Get('me')
     @UseGuards(AuthGuard)
-    async getCurrentUser(@CurrentUser() user: any) {
-        return user;
+    async getCurrentUser(@Session() session: any) {
+        const tokenUsage = await this.usersService.getTokenUsage(session.userId);
+        const user = await this.usersService.findById(session.userId);
+
+        return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            createdAt: user.createdAt,
+            totalTokensUsed: tokenUsage.totalTokensUsed,
+            dailyTokensUsed: tokenUsage.dailyTokensUsed,
+        };
     }
 }
